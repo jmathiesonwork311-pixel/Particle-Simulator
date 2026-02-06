@@ -1,44 +1,64 @@
 #include <GL/glut.h>
 
 #include "../src/ball.h"
+#include "../src/engine.h"
 #include "../src/object.h"
-// 1. Create the ball object globally so the display function can see it
-ball a, b;
-void generateBall() {}
+#include "../src/quadtree.h"
+vector<ball> otherBalls;
+quadTree* original = new quadTree(1.0, -1.0, 1.0, -1.0);
 void display() {
   glClear(GL_COLOR_BUFFER_BIT);
+  for (auto x : otherBalls) x.drawShape();
 
-  a.drawShape();  // Draw the current state
-  glFlush();
+  glutSwapBuffers();
 }
 void update(int value) {
+  // Keeps spawning balls up till 1000.
+  if (otherBalls.size() < 8000) {
+    otherBalls.push_back(ball());
+    otherBalls.back().changePosition((rand() + 1.0) / (100.0 * RAND_MAX), 0);
+  }
+  // Alternating color
   glClear(GL_COLOR_BUFFER_BIT);
-  a.applyGravity();
-  b.applyGravity();
-  a.collision();
-
-  a.updateVelocity();
-  a.drawShape();
-  b.collision();
-  b.updateVelocity();
-  b.drawShape();
+  original->clear();
+  // Takes by reference and in linear time creates the quadtree.
+  for (auto& x : otherBalls) {
+    original->insert(&x);
+  }
+  // Applie's gravity to the balls.
+  for (auto& x : otherBalls) x.applyGravity();
+  // Applies the collisoin in nlog(n) time which is bvetter thhan the n^2
+  for (int iter = 0; iter < 1; iter++) {
+    original->collision();
+  }
+  // Updates position then draws.
+  for (auto& x : otherBalls) x.updatePosition();
+  for (auto& x : otherBalls) x.drawShape();
+  // Alternates the frame.
+  glutPostRedisplay();
   glutTimerFunc(16, update, 0);
-
-  glFlush();
 }
+bool running = true;  // controls the update loop
 
+void handleKey(unsigned char key, int x, int y) {
+  if (key == 27 || key == 'q' || key == 'Q') {
+    running = false;
+    delete original;
+    exit(0);
+  }
+}
 int main(int argc, char** argv) {
-  b.changePosition(0.003, 1);
+  original->isRootSet();
+
   glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutInitDisplayMode(GLUT_DOUBLE);
   glutInitWindowSize(1000, 1000);
-  glutCreateWindow("OpenGL Ball Simulation");
+  glutCreateWindow("Particle sim");
+  glutKeyboardFunc(handleKey);  // <-- add this
+  glClearColor(0.0, 0.0, 0.0, 1.0);
 
-  glClearColor(0.0, 0.0, 0.0, 1.0);  // Black background
-
-  // 3. Pass the name of the function to be called for drawing
   glutDisplayFunc(display);
-  glutTimerFunc(1000, update, 0);
+  if (running) glutTimerFunc(1, update, 0);
   glutMainLoop();
   return 0;
 }
