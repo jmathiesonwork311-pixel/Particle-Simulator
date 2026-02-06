@@ -1,7 +1,10 @@
 # Statistically-accurate-particles.
 Graphical program designed to display collisions, intended to run at high volumes of balls. 
 
-From linux it can be opened by running <make -B main>
+From linux it can be opened by running 
+```bash
+make -B main
+```
 This assumes the dependancy are installed. OPENGL, and GCC are required.
 
 ![Example animation](/Animation.gif)
